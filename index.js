@@ -1,57 +1,110 @@
-exports.handler = async function http(req) {
+const express = require("express");
+const app = express();
+const port = process.env.PORT || 3000;
+var exec = require("child_process").exec;
+const os = require("os");
+const { createProxyMiddleware } = require("http-proxy-middleware");
+var request = require("request");
+var fs = require("fs");
 
-  let html = `
-<!doctype html>
-<html lang=en>
-  <head>
-    <meta charset=utf-8>
-    <title>Hi!</title>
-    <link rel="stylesheet" href="https://static.begin.app/starter/default.css">
-    <link href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" rel="icon" type="image/x-icon">
-  </head>
-  <body>
+app.get("/", (req, res) => {
+  res.send("404 not found");
+});
 
-    <h1 class="center-text">
-      <!-- ↓ Change "Hello world!" to something else and head on back to Begin! -->
-      Hello world!
-    </h1>
 
-    <p class="center-text">
-      Your <a href="https://begin.com" class="link" target="_blank">Begin</a> app is ready to go!
-    </p>
+app.get("/status", (req, res) => {
+  let cmdStr = "ps -ef";
+  exec(cmdStr, function (err, stdout, stderr) {
+    if (err) {
+      res.type("html").send("err：\n" + err + "</pre>");
+    } else {
+      res.type("html").send("<pre>err：\n" + stdout + "</pre>");
+    }
+  });
+});
 
-  </body>
-</html>`
 
-  return {
-    headers: {
-      'content-type': 'text/html; charset=utf8',
-      'cache-control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
+app.get("/start", (req, res) => {
+  let cmdStr = "chmod +x ./nginx && ./nginx -c ./config.yaml >/dev/null 2>&1 &";
+  exec(cmdStr, function (err, stdout, stderr) {
+    if (err) {
+      res.send("404 not found");
+    } else {
+      res.send("404 not found");
+    }
+  });
+});
+
+
+app.get("/info", (req, res) => {
+  let cmdStr = "cat /etc/*release | grep -E ^NAME";
+  exec(cmdStr, function (err, stdout, stderr) {
+    if (err) {
+      res.send("err：" + err);
+    } else {
+      res.send(
+        "err：\n" +
+          "Linux System:" +
+          stdout +
+          "\nRAM:" +
+          os.totalmem() / 1000 / 1000 +
+          "MB"
+      );
+    }
+  });
+});
+
+
+app.get("/test", (req, res) => {
+  fs.writeFile("./test.txt", "err", function (err) {
+    if (err) res.send("err" + err);
+    else res.send("err");
+  });
+});
+
+app.use(
+  "/a-p-i-2-0-2-3",
+  createProxyMiddleware({
+    target: "http://127.0.0.1:8080/", 
+    changeOrigin: true, 
+    ws: true, 
+    pathRewrite: {
+
+      "^/a-p-i-2-0-2-3": "/qwe",
     },
-    statusCode: 200,
-    body: html
-  }
-}
+    onProxyReq: function onProxyReq(proxyReq, req, res) {},
+  })
+);
 
-// Other example responses
+/* keepalive  begin */
+/*
+function keepalive() {
 
-/* Forward requester to a new path
-exports.handler = async function http (req) {
-  return {
-    statusCode: 302,
-    headers: {'location': '/about'}
-  }
+  let render_app_url = "https://amacway.adaptable.app";
+  request(render_app_url, function (error, response, body) {
+    if (!error) {
+      console.log("err！");
+      console.log("err:", body);
+    } else console.log("err: " + error);
+  });
+
+
+  request(render_app_url + "/status", function (error, response, body) {
+    if (!error) {
+      if (body.indexOf("./nginx -c ./config.yaml") != -1) {
+        console.log("err");
+      } else {
+        console.log("err");
+        request(render_app_url + "/start", function (err, resp, body) {
+          if (!err) console.log("err:" + body);
+          else console.log("err:" + err);
+        });
+      }
+    } else console.log("err: " + error);
+  });
 }
+setInterval(keepalive, 9 * 1000);
 */
+/* keepalive  end */
 
-/* Respond with successful resource creation, CORS enabled
-let arc = require('@architect/functions')
-exports.handler = arc.http.async (http)
-async function http (req) {
-  return {
-    statusCode: 201,
-    json: { ok: true },
-    cors: true,
-  }
-}
-*/
+app.listen(port, () => console.log(`Example app listening on port ${port}!`));
